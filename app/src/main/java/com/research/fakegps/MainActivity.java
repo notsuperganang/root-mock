@@ -82,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
     private void initMap() {
         mapView.setTileSource(TileSourceFactory.MAPNIK);
         mapView.setMultiTouchControls(true);
+        mapView.setBuiltInZoomControls(true);
         mapView.getController().setZoom(15.0);
         mapView.getController().setCenter(new GeoPoint(DEFAULT_LAT, DEFAULT_LON));
 
