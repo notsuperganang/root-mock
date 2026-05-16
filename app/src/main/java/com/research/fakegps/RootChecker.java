@@ -7,27 +7,21 @@ import java.io.File;
 import java.io.InputStreamReader;
 
 /**
- * ROOT CHECKER
- * 
- * Verify apakah HP sudah di-root atau belum
- * App ini WAJIB root untuk bisa jalan
+ * Verifies whether the device has root access.
+ *
+ * Uses three independent checks in combination to improve detection accuracy
+ * across different root implementations (Magisk, SuperSU, etc.).
  */
 public class RootChecker {
 
     private static final String TAG = "RootChecker";
 
-    /**
-     * Check if device is rooted
-     * 
-     * Multiple checks untuk reliability
-     */
+    /** Returns true if any root indicator is found on the device. */
     public boolean isDeviceRooted() {
         return checkSuBinary() || checkMagisk() || checkSuCommand();
     }
 
-    /**
-     * CHECK 1: Cek apakah su binary ada
-     */
+    /** Check 1: Look for su binary in known system paths. */
     private boolean checkSuBinary() {
         String[] paths = {
             "/system/bin/su",
@@ -38,80 +32,54 @@ public class RootChecker {
             "/system/usr/we-need-root/su-backup",
             "/system/xbin/mu"
         };
-
         for (String path : paths) {
             if (new File(path).exists()) {
-                Log.d(TAG, "Root detected: su binary found at " + path);
+                Log.d(TAG, "Root detected: su binary at " + path);
                 return true;
             }
         }
-
         return false;
     }
 
-    /**
-     * CHECK 2: Cek apakah Magisk terinstall
-     */
+    /** Check 2: Look for Magisk installation directories. */
     private boolean checkMagisk() {
         String[] magiskPaths = {
             "/data/adb/magisk",
             "/sbin/.magisk",
             "/data/adb/modules"
         };
-
         for (String path : magiskPaths) {
             if (new File(path).exists()) {
-                Log.d(TAG, "Root detected: Magisk found at " + path);
+                Log.d(TAG, "Root detected: Magisk at " + path);
                 return true;
             }
         }
-
         return false;
     }
 
-    /**
-     * CHECK 3: Test execute su command
-     * 
-     * Cara paling reliable - langsung coba jalankan
-     */
+    /** Check 3: Attempt to execute su — succeeds only on rooted devices. */
     private boolean checkSuCommand() {
         Process process = null;
         try {
             process = Runtime.getRuntime().exec("su");
-            BufferedReader in = new BufferedReader(
-                new InputStreamReader(process.getInputStream())
-            );
-            
-            // If we can execute su, device is rooted
+            BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()));
             if (in != null) {
                 Log.d(TAG, "Root detected: su command executable");
                 return true;
             }
         } catch (Exception e) {
-            Log.d(TAG, "Root not detected: Cannot execute su command");
+            Log.d(TAG, "Root not detected: su command failed");
         } finally {
-            if (process != null) {
-                process.destroy();
-            }
+            if (process != null) process.destroy();
         }
-
         return false;
     }
 
-    /**
-     * Get detailed root info (for debugging)
-     */
+    /** Returns a human-readable summary of all root checks. */
     public String getRootInfo() {
-        StringBuilder info = new StringBuilder();
-        
-        info.append("Root Status Check:\n");
-        info.append("─────────────────────\n");
-        info.append("Su Binary: ").append(checkSuBinary() ? "✓ Found" : "✗ Not found").append("\n");
-        info.append("Magisk: ").append(checkMagisk() ? "✓ Found" : "✗ Not found").append("\n");
-        info.append("Su Command: ").append(checkSuCommand() ? "✓ Executable" : "✗ Not executable").append("\n");
-        info.append("─────────────────────\n");
-        info.append("Overall: ").append(isDeviceRooted() ? "✓ ROOTED" : "✗ NOT ROOTED");
-        
-        return info.toString();
+        return "Su Binary: " + (checkSuBinary() ? "Found" : "Not found") + "\n" +
+               "Magisk:    " + (checkMagisk()   ? "Found" : "Not found") + "\n" +
+               "Su Command:" + (checkSuCommand() ? "Executable" : "Not executable") + "\n" +
+               "Overall:   " + (isDeviceRooted() ? "ROOTED" : "NOT ROOTED");
     }
 }
