@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#FFFFFF">
+
+    <!-- Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Custom Fake GPS"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#212121"
+        android:gravity="center"
+        android:paddingBottom="8dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="For Security Research Only"
+        android:textSize="12sp"
+        android:textColor="#757575"
+        android:gravity="center"
+        android:paddingBottom="24dp"/>
+
+    <!-- Root Status Card -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:elevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tv_root_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Root Status: Checking..."
+                android:textSize="14sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="This app requires ROOT access to bypass detection"
+                android:textSize="12sp"
+                android:textColor="#757575"
+                android:paddingTop="4dp"/>
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Koordinat Input Card -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:elevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fake Location Coordinates"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:paddingBottom="12dp"/>
+
+            <!-- Latitude Input -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Latitude"
+                android:textSize="12sp"
+                android:textColor="#757575"/>
+
+            <EditText
+                android:id="@+id/edit_latitude"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="-6.2088"
+                android:inputType="numberDecimal|numberSigned"
+                android:textSize="16sp"
+                android:paddingBottom="8dp"/>
+
+            <!-- Longitude Input -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Longitude"
+                android:textSize="12sp"
+                android:textColor="#757575"
+                android:paddingTop="8dp"/>
+
+            <EditText
+                android:id="@+id/edit_longitude"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="106.8456"
+                android:inputType="numberDecimal|numberSigned"
+                android:textSize="16sp"/>
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Action Buttons -->
+    <Button
+        android:id="@+id/btn_set_location"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Set Fake Location"
+        android:textColor="#FFFFFF"
+        android:background="#4CAF50"
+        android:padding="16dp"
+        android:layout_marginBottom="12dp"
+        android:enabled="false"/>
+
+    <Button
+        android:id="@+id/btn_stop_fake"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Stop Fake GPS"
+        android:textColor="#FFFFFF"
+        android:background="#F44336"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp"
+        android:enabled="false"/>
+
+    <!-- Status Card -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:elevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Status: ○ IDLE - Waiting for input"
+                android:textSize="14sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Method: Root-based injection (NOT Mock Location API)"
+                android:textSize="12sp"
+                android:textColor="#757575"
+                android:paddingTop="4dp"/>
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Info Box -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#FFF9C4"
+        android:padding="12dp"
+        android:layout_marginTop="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ℹ️ How This Differs from Play Store Apps:"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#F57F17"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✓ NO Developer Options required\n✓ Bypasses mock location detection\n✓ Uses root access (not official API)\n✓ For security research only"
+            android:textSize="11sp"
+            android:textColor="#F57F17"
+            android:paddingTop="4dp"/>
+
+    </LinearLayout>
+
+</LinearLayout>

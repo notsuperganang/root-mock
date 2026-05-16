@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.research.fakegps">
+
+    <!--
+    ═══════════════════════════════════════════════════════════════
+    PERBEDAAN KRITIS: MANIFEST CUSTOM APP vs PLAY STORE APP
+    ═══════════════════════════════════════════════════════════════
+    
+    APP PLAY STORE (Official Mock Location):
+    ─────────────────────────────────────────────────────────────
+    <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" />
+    
+    Dengan permission ini:
+    ✗ App HARUS declare sebagai test provider
+    ✗ Require Developer Options ON
+    ✗ User harus manual pilih app sebagai mock location provider
+    ✗ Location.isFromMockProvider() return TRUE (terdeteksi!)
+    
+    
+    APP CUSTOM INI (Root-based):
+    ─────────────────────────────────────────────────────────────
+    TIDAK pakai ACCESS_MOCK_LOCATION permission!
+    
+    Karena:
+    ✓ Inject GPS via root command, bukan via official API
+    ✓ TIDAK perlu Developer Options ON
+    ✓ TIDAK perlu user pilih app sebagai mock provider
+    ✓ Location.isFromMockProvider() return FALSE (dengan LSPosed)
+    
+    Ini yang membuat app ini bisa BYPASS detection!
+    ═══════════════════════════════════════════════════════════════
+    -->
+
+    <!-- Permission yang DIBUTUHKAN -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- CRITICAL: TIDAK pakai ACCESS_MOCK_LOCATION! -->
+    <!-- <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" /> -->
+    
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+        <!--
+        CRITICAL: TIDAK ada service declaration untuk mock location provider!
+        
+        App Play Store biasanya punya:
+        <service
+            android:name=".MockLocationService"
+            android:permission="android.permission.ACCESS_MOCK_LOCATION">
+            <intent-filter>
+                <action android:name="android.location.LocationProvider" />
+            </intent-filter>
+        </service>
+        
+        App ini TIDAK punya service tersebut karena inject via root!
+        -->
+        
+    </application>
+
+</manifest>
