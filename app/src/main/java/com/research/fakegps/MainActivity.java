@@ -1,10 +1,13 @@
 package com.research.fakegps;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -21,6 +24,8 @@ import org.osmdroid.views.overlay.Marker;
 import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.events.MapEventsReceiver;
 
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 1;
@@ -29,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     private EditText editLongitude;
     private Button btnSetLocation;
     private Button btnStopFake;
+    private Button btnSaveFavorite;
+    private Button btnViewFavorites;
     private TextView tvStatus;
     private TextView tvRootStatus;
     private MapView mapView;
@@ -36,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
 
     private GPSInjector gpsInjector;
     private RootChecker rootChecker;
+    private DatabaseHelper dbHelper;
 
     private static final double DEFAULT_LAT = -6.2088;
     private static final double DEFAULT_LON = 106.8456;
@@ -57,13 +65,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        editLatitude = findViewById(R.id.edit_latitude);
-        editLongitude = findViewById(R.id.edit_longitude);
-        btnSetLocation = findViewById(R.id.btn_set_location);
-        btnStopFake = findViewById(R.id.btn_stop_fake);
-        tvStatus = findViewById(R.id.tv_status);
-        tvRootStatus = findViewById(R.id.tv_root_status);
-        mapView = findViewById(R.id.map_view);
+        editLatitude     = findViewById(R.id.edit_latitude);
+        editLongitude    = findViewById(R.id.edit_longitude);
+        btnSetLocation   = findViewById(R.id.btn_set_location);
+        btnStopFake      = findViewById(R.id.btn_stop_fake);
+        btnSaveFavorite  = findViewById(R.id.btn_save_favorite);
+        btnViewFavorites = findViewById(R.id.btn_view_favorites);
+        tvStatus         = findViewById(R.id.tv_status);
+        tvRootStatus     = findViewById(R.id.tv_root_status);
+        mapView          = findViewById(R.id.map_view);
 
         editLatitude.setText(String.valueOf(DEFAULT_LAT));
         editLongitude.setText(String.valueOf(DEFAULT_LON));
@@ -109,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
     private void initManagers() {
         gpsInjector = new GPSInjector(this);
         rootChecker = new RootChecker();
+        dbHelper    = new DatabaseHelper(this);
     }
 
     private void checkRootStatus() {
@@ -135,20 +146,107 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        btnSetLocation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                setFakeLocation();
-            }
-        });
-
-        btnStopFake.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stopFakeLocation();
-            }
-        });
+        btnSetLocation.setOnClickListener(v -> setFakeLocation());
+        btnStopFake.setOnClickListener(v -> stopFakeLocation());
+        btnSaveFavorite.setOnClickListener(v -> showSaveFavoriteDialog());
+        btnViewFavorites.setOnClickListener(v -> showFavoritesDialog());
     }
+
+    // ── Favorites ────────────────────────────────────────────────────────────
+
+    private void showSaveFavoriteDialog() {
+        String latStr = editLatitude.getText().toString();
+        String lonStr = editLongitude.getText().toString();
+
+        if (latStr.isEmpty() || lonStr.isEmpty()) {
+            Toast.makeText(this, "Pilih lokasi terlebih dahulu.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final double lat;
+        final double lon;
+        try {
+            lat = Double.parseDouble(latStr);
+            lon = Double.parseDouble(lonStr);
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Koordinat tidak valid.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final EditText nameInput = new EditText(this);
+        nameInput.setHint("Nama lokasi (contoh: Kantor BKD)");
+
+        new AlertDialog.Builder(this)
+            .setTitle("Simpan Lokasi Favorit")
+            .setView(nameInput)
+            .setPositiveButton("Simpan", (dialog, which) -> {
+                String name = nameInput.getText().toString().trim();
+                if (name.isEmpty()) {
+                    Toast.makeText(this, "Nama tidak boleh kosong.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                long id = dbHelper.insert(name, lat, lon);
+                if (id != -1) {
+                    Toast.makeText(this, "\"" + name + "\" disimpan ke favorit.", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Gagal menyimpan favorit.", Toast.LENGTH_SHORT).show();
+                }
+            })
+            .setNegativeButton("Batal", null)
+            .show();
+    }
+
+    private void showFavoritesDialog() {
+        List<FavoriteLocation> favorites = dbHelper.getAll();
+
+        if (favorites.isEmpty()) {
+            Toast.makeText(this, "Belum ada lokasi favorit.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] items = new String[favorites.size()];
+        for (int i = 0; i < favorites.size(); i++) {
+            items[i] = favorites.get(i).toString();
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle("Lokasi Favorit")
+            .setItems(items, (dialog, which) -> {
+                FavoriteLocation selected = favorites.get(which);
+                updateSelectedLocation(selected.getLatitude(), selected.getLongitude());
+                mapView.getController().setZoom(16.0);
+                Toast.makeText(this, "Navigasi ke: " + selected.getName(), Toast.LENGTH_SHORT).show();
+            })
+            .setNeutralButton("Hapus...", (dialog, which) -> showDeleteFavoriteDialog(favorites))
+            .setNegativeButton("Tutup", null)
+            .show();
+    }
+
+    private void showDeleteFavoriteDialog(List<FavoriteLocation> favorites) {
+        String[] items = new String[favorites.size()];
+        for (int i = 0; i < favorites.size(); i++) {
+            items[i] = favorites.get(i).toString();
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle("Hapus Favorit")
+            .setItems(items, (dialog, which) -> {
+                FavoriteLocation toDelete = favorites.get(which);
+                new AlertDialog.Builder(this)
+                    .setTitle("Konfirmasi Hapus")
+                    .setMessage("Hapus \"" + toDelete.getName() + "\"?")
+                    .setPositiveButton("Hapus", (d, w) -> {
+                        dbHelper.delete(toDelete.getId());
+                        Toast.makeText(this, "\"" + toDelete.getName() + "\" dihapus.", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("Batal", null)
+                    .show();
+            })
+            .setNegativeButton("Batal", null)
+            .show();
+    }
+
+    // ── GPS Injection ─────────────────────────────────────────────────────────
 
     private void setFakeLocation() {
         String latStr = editLatitude.getText().toString();
@@ -160,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         try {
-            double latitude = Double.parseDouble(latStr);
+            double latitude  = Double.parseDouble(latStr);
             double longitude = Double.parseDouble(lonStr);
 
             if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
@@ -200,6 +298,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -216,5 +316,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         gpsInjector.cleanup();
+        dbHelper.close();
     }
 }
