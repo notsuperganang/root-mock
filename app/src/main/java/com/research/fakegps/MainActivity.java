@@ -1,20 +1,19 @@
 package com.research.fakegps;
 
 import android.Manifest;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
@@ -127,12 +126,12 @@ public class MainActivity extends AppCompatActivity {
         boolean isRooted = rootChecker.isDeviceRooted();
 
         if (isRooted) {
-            tvRootStatus.setText("Root: AKTIF");
-            tvRootStatus.setTextColor(getResources().getColor(android.R.color.holo_green_light));
+            tvRootStatus.setText("● Siap");
+            tvRootStatus.setTextColor(0xFF69F0AE);
             btnSetLocation.setEnabled(true);
         } else {
-            tvRootStatus.setText("Root: TIDAK ADA (fitur inject nonaktif)");
-            tvRootStatus.setTextColor(getResources().getColor(android.R.color.holo_red_light));
+            tvRootStatus.setText("● Tidak ada root");
+            tvRootStatus.setTextColor(0xFFFF6E6E);
             btnSetLocation.setEnabled(false);
         }
     }
@@ -177,9 +176,14 @@ public class MainActivity extends AppCompatActivity {
         final EditText nameInput = new EditText(this);
         nameInput.setHint("Nama lokasi (contoh: Kantor BKD)");
 
-        new AlertDialog.Builder(this)
+        int dp = (int) (getResources().getDisplayMetrics().density * 20);
+        FrameLayout container = new FrameLayout(this);
+        container.setPadding(dp, dp / 2, dp, 0);
+        container.addView(nameInput);
+
+        new MaterialAlertDialogBuilder(this)
             .setTitle("Simpan Lokasi Favorit")
-            .setView(nameInput)
+            .setView(container)
             .setPositiveButton("Simpan", (dialog, which) -> {
                 String name = nameInput.getText().toString().trim();
                 if (name.isEmpty()) {
@@ -210,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
             items[i] = favorites.get(i).toString();
         }
 
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this)
             .setTitle("Lokasi Favorit")
             .setItems(items, (dialog, which) -> {
                 FavoriteLocation selected = favorites.get(which);
@@ -229,11 +233,11 @@ public class MainActivity extends AppCompatActivity {
             items[i] = favorites.get(i).toString();
         }
 
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this)
             .setTitle("Hapus Favorit")
             .setItems(items, (dialog, which) -> {
                 FavoriteLocation toDelete = favorites.get(which);
-                new AlertDialog.Builder(this)
+                new MaterialAlertDialogBuilder(this)
                     .setTitle("Konfirmasi Hapus")
                     .setMessage("Hapus \"" + toDelete.getName() + "\"?")
                     .setPositiveButton("Hapus", (d, w) -> {
