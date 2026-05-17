@@ -12,7 +12,7 @@
         android:icon="@android:drawable/ic_menu_mylocation"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+        android:theme="@style/Theme.FakeGPS">
 
         <activity
             android:name=".MainActivity"
