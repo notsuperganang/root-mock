@@ -1,17 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FFFFFF">
+    android:background="@color/white">
 
     <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp"
-        android:background="#1565C0">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp"
+        android:background="@color/blue_700"
+        android:elevation="4dp">
 
         <TextView
             android:layout_width="match_parent"
@@ -19,8 +24,9 @@
             android:text="Custom Fake GPS"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF"
-            android:gravity="center"/>
+            android:textColor="@color/white"
+            android:gravity="center"
+            android:letterSpacing="0.02"/>
 
         <TextView
             android:id="@+id/tv_root_status"
@@ -29,7 +35,8 @@
             android:text="Root Status: Checking..."
             android:textSize="12sp"
             android:textColor="#B3E5FC"
-            android:gravity="center"/>
+            android:gravity="center"
+            android:layout_marginTop="2dp"/>
 
     </LinearLayout>
 
@@ -44,154 +51,147 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Tap peta untuk pilih lokasi"
+        android:text="Tap peta untuk memilih lokasi"
         android:textSize="11sp"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/white"
         android:gravity="center"
-        android:background="#1976D2"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"/>
+        android:background="@color/blue_800"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"/>
 
     <!-- Bottom Panel -->
-    <LinearLayout
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="12dp"
-        android:background="#F5F5F5">
+        app:cardElevation="8dp"
+        app:cardCornerRadius="0dp"
+        app:cardBackgroundColor="@color/white">
 
-        <!-- Coordinates Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
+            android:orientation="vertical"
+            android:padding="12dp">
 
+            <!-- Coordinates Row -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginEnd="6dp">
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
 
-                <TextView
-                    android:layout_width="match_parent"
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Latitude"
-                    android:textSize="11sp"
-                    android:textColor="#757575"/>
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:hint="Latitude"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
 
-                <EditText
-                    android:id="@+id/edit_latitude"
-                    android:layout_width="match_parent"
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_latitude"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal|numberSigned"
+                        android:textSize="14sp"/>
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:hint="-6.2088"
-                    android:inputType="numberDecimal|numberSigned"
-                    android:textSize="14sp"
-                    android:background="@android:drawable/editbox_background"
-                    android:padding="6dp"/>
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:hint="Longitude"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_longitude"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal|numberSigned"
+                        android:textSize="14sp"/>
+
+                </com.google.android.material.textfield.TextInputLayout>
 
             </LinearLayout>
 
+            <!-- Favorites Buttons Row -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginStart="6dp">
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
 
-                <TextView
-                    android:layout_width="match_parent"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_save_favorite"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Longitude"
-                    android:textSize="11sp"
-                    android:textColor="#757575"/>
+                    android:layout_weight="1"
+                    android:text="Simpan Favorit"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="4dp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    app:cornerRadius="8dp"/>
 
-                <EditText
-                    android:id="@+id/edit_longitude"
-                    android:layout_width="match_parent"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_view_favorites"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:hint="106.8456"
-                    android:inputType="numberDecimal|numberSigned"
-                    android:textSize="14sp"
-                    android:background="@android:drawable/editbox_background"
-                    android:padding="6dp"/>
+                    android:layout_weight="1"
+                    android:text="Lihat Favorit"
+                    android:textSize="12sp"
+                    android:layout_marginStart="4dp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    app:cornerRadius="8dp"/>
 
             </LinearLayout>
 
-        </LinearLayout>
-
-        <!-- Favorites Buttons Row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
-
-            <Button
-                android:id="@+id/btn_save_favorite"
-                android:layout_width="0dp"
+            <!-- Action Buttons Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Simpan Favorit"
+                android:orientation="horizontal"
+                android:layout_marginBottom="10dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_set_location"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="SET LOKASI"
+                    android:textColor="@color/white"
+                    android:layout_marginEnd="4dp"
+                    app:backgroundTint="@color/green_600"
+                    app:cornerRadius="8dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_stop_fake"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="STOP"
+                    android:textColor="@color/white"
+                    android:layout_marginStart="4dp"
+                    android:enabled="false"
+                    app:backgroundTint="@color/red_500"
+                    app:cornerRadius="8dp"/>
+
+            </LinearLayout>
+
+            <!-- Status -->
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Status: IDLE"
                 android:textSize="12sp"
-                android:textColor="#1565C0"
-                android:background="@android:color/white"
-                android:layout_marginEnd="4dp"/>
-
-            <Button
-                android:id="@+id/btn_view_favorites"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Lihat Favorit"
-                android:textSize="12sp"
-                android:textColor="#1565C0"
-                android:background="@android:color/white"
-                android:layout_marginStart="4dp"/>
+                android:textStyle="bold"
+                android:gravity="center"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"/>
 
         </LinearLayout>
-
-        <!-- Action Buttons Row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
-
-            <Button
-                android:id="@+id/btn_set_location"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="SET LOKASI"
-                android:textColor="#FFFFFF"
-                android:background="#4CAF50"
-                android:layout_marginEnd="4dp"/>
-
-            <Button
-                android:id="@+id/btn_stop_fake"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="STOP"
-                android:textColor="#FFFFFF"
-                android:background="#F44336"
-                android:layout_marginStart="4dp"
-                android:enabled="false"/>
-
-        </LinearLayout>
-
-        <!-- Status -->
-        <TextView
-            android:id="@+id/tv_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Status: IDLE"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:gravity="center"/>
-
-    </LinearLayout>
+    </androidx.cardview.widget.CardView>
 
 </LinearLayout>
