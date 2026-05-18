@@ -4,12 +4,18 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -23,6 +29,7 @@ import org.osmdroid.views.overlay.Marker;
 import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.events.MapEventsReceiver;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -209,46 +216,65 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String[] items = new String[favorites.size()];
-        for (int i = 0; i < favorites.size(); i++) {
-            items[i] = favorites.get(i).toString();
-        }
+        FavoriteAdapter adapter = new FavoriteAdapter(new ArrayList<>(favorites));
 
-        new MaterialAlertDialogBuilder(this)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
             .setTitle("Lokasi Favorit")
-            .setItems(items, (dialog, which) -> {
-                FavoriteLocation selected = favorites.get(which);
+            .setAdapter(adapter, (d, which) -> {
+                FavoriteLocation selected = adapter.getItem(which);
                 updateSelectedLocation(selected.getLatitude(), selected.getLongitude());
                 mapView.getController().setZoom(16.0);
                 Toast.makeText(this, "Navigasi ke: " + selected.getName(), Toast.LENGTH_SHORT).show();
             })
-            .setNeutralButton("Hapus...", (dialog, which) -> showDeleteFavoriteDialog(favorites))
             .setNegativeButton("Tutup", null)
-            .show();
+            .create();
+
+        adapter.setDialog(dialog);
+        dialog.show();
     }
 
-    private void showDeleteFavoriteDialog(List<FavoriteLocation> favorites) {
-        String[] items = new String[favorites.size()];
-        for (int i = 0; i < favorites.size(); i++) {
-            items[i] = favorites.get(i).toString();
+    private class FavoriteAdapter extends ArrayAdapter<FavoriteLocation> {
+
+        private AlertDialog dialog;
+
+        FavoriteAdapter(List<FavoriteLocation> items) {
+            super(MainActivity.this, R.layout.item_favorite, items);
         }
 
-        new MaterialAlertDialogBuilder(this)
-            .setTitle("Hapus Favorit")
-            .setItems(items, (dialog, which) -> {
-                FavoriteLocation toDelete = favorites.get(which);
-                new MaterialAlertDialogBuilder(this)
-                    .setTitle("Konfirmasi Hapus")
-                    .setMessage("Hapus \"" + toDelete.getName() + "\"?")
+        void setDialog(AlertDialog d) {
+            this.dialog = d;
+        }
+
+        @NonNull
+        @Override
+        public View getView(int position, View convertView, @NonNull ViewGroup parent) {
+            if (convertView == null) {
+                convertView = getLayoutInflater().inflate(R.layout.item_favorite, parent, false);
+            }
+
+            FavoriteLocation fav = getItem(position);
+            TextView tvName   = convertView.findViewById(R.id.tv_fav_name);
+            TextView tvCoords = convertView.findViewById(R.id.tv_fav_coords);
+            ImageButton btnDelete = convertView.findViewById(R.id.btn_delete_fav);
+
+            tvName.setText(fav.getName());
+            tvCoords.setText(String.format("%.6f, %.6f", fav.getLatitude(), fav.getLongitude()));
+
+            btnDelete.setOnClickListener(v -> {
+                new MaterialAlertDialogBuilder(MainActivity.this)
+                    .setTitle("Hapus Favorit")
+                    .setMessage("Hapus \"" + fav.getName() + "\"?")
                     .setPositiveButton("Hapus", (d, w) -> {
-                        dbHelper.delete(toDelete.getId());
-                        Toast.makeText(this, "\"" + toDelete.getName() + "\" dihapus.", Toast.LENGTH_SHORT).show();
+                        dbHelper.delete(fav.getId());
+                        remove(fav);
+                        if (getCount() == 0 && dialog != null) dialog.dismiss();
                     })
                     .setNegativeButton("Batal", null)
                     .show();
-            })
-            .setNegativeButton("Batal", null)
-            .show();
+            });
+
+            return convertView;
+        }
     }
 
     // ── GPS Injection ─────────────────────────────────────────────────────────
