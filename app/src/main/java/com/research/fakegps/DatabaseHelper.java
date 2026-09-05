@@ -34,6 +34,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             COL_LAT  + " REAL NOT NULL, " +
             COL_LON  + " REAL NOT NULL)"
         );
+
+        // Add pre-populated default location "puskesmas"
+        ContentValues defaultLocation = new ContentValues();
+        defaultLocation.put(COL_NAME, "puskesmas");
+        defaultLocation.put(COL_LAT, 4.588703219411093);
+        defaultLocation.put(COL_LON, 97.90815362491381);
+        db.insert(TABLE, null, defaultLocation);
     }
 
     @Override

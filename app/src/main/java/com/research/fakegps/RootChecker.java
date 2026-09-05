@@ -18,7 +18,24 @@ public class RootChecker {
 
     /** Returns true if any root indicator is found on the device. */
     public boolean isDeviceRooted() {
-        return checkSuBinary() || checkMagisk() || checkSuCommand();
+        return checkSuBinary() || checkMagisk() || checkSuCommand() || checkMagiskPaths();
+    }
+
+    /** Check 4: Check for Magisk in additional paths (including hidden installs). */
+    private boolean checkMagiskPaths() {
+        String[] additionalPaths = {
+            "/data/adb/magisk",
+            "/data/adb/magisk/su",
+            "/data/adb/magisk/magiskinit",
+            "/data/local/su"
+        };
+        for (String path : additionalPaths) {
+            if (new File(path).exists()) {
+                Log.d(TAG, "Root detected: Found " + path);
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Check 1: Look for su binary in known system paths. */

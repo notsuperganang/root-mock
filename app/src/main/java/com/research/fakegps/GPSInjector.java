@@ -1,155 +1,178 @@
 package com.research.fakegps;
 
 import android.content.Context;
+import android.location.Location;
+import android.location.LocationManager;
+import android.location.LocationProvider;
+import android.os.Build;
+import android.os.SystemClock;
 import android.util.Log;
-
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.util.List;
 
 /**
- * Handles GPS location injection via root shell commands.
+ * LSPosed Framework-integrated GPS location injection (based on tiket.git approach).
  *
- * Attempts three injection methods in order of reliability, falling back
- * to the next if the previous fails. Requires root (su) access on the device.
- *
- * @see docs/TECHNICAL_ANALYSIS.md for a full breakdown of each injection method.
+ * Strategy: Mirror all existing location providers + CONTINUOUS UPDATES
+ * The key: keep updating location in background thread so it doesn't revert.
  */
 public class GPSInjector {
 
-    private static final String TAG = "GPSInjector";
+    private static final String TAG = "GPSInjector-LSPosed";
+    private static final long UPDATE_INTERVAL_MS = 1000;  // Update every 1 second (like tiket.git)
+
     private Context context;
+    private LocationManager locationManager;
     private boolean isFakeGPSActive = false;
+    private LocationUpdateThread updateThread;
+    private double currentLat;
+    private double currentLon;
 
     public GPSInjector(Context context) {
         this.context = context;
+        this.locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
     }
 
     /**
-     * Injects a fake GPS location using the most reliable available method.
+     * Injects fake location and starts continuous update thread (like tiket.git).
+     * The key to persistence: keep updating location every second!
      *
-     * @param latitude  Target latitude (-90 to 90)
-     * @param longitude Target longitude (-180 to 180)
-     * @return true if injection succeeded, false if all methods failed
+     * @param latitude  Target latitude
+     * @param longitude Target longitude
+     * @return true if injection succeeded
      */
     public boolean setFakeLocation(double latitude, double longitude) {
-        Log.d(TAG, String.format("Setting fake location: %.6f, %.6f", latitude, longitude));
+        Log.d(TAG, String.format("Injecting fake location: %.6f, %.6f", latitude, longitude));
 
-        boolean success = injectViaSystemBroadcast(latitude, longitude);
-
-        if (!success) {
-            success = injectViaLocationProvider(latitude, longitude);
-        }
-
-        if (!success) {
-            success = injectViaSystemProperty(latitude, longitude);
-        }
-
-        if (success) {
-            isFakeGPSActive = true;
-            Log.i(TAG, "Fake GPS activated successfully");
-        } else {
-            Log.e(TAG, "All injection methods failed");
-        }
-
-        return success;
-    }
-
-    /** Method 1: Send a GPS_FIX_CHANGE broadcast with spoofed coordinates. */
-    private boolean injectViaSystemBroadcast(double latitude, double longitude) {
         try {
-            String command = String.format(
-                "am broadcast -a android.location.GPS_FIX_CHANGE " +
-                "--ef latitude %f --ef longitude %f " +
-                "--ef accuracy 1.0 --ef altitude 100.0 " +
-                "--ef bearing 0.0 --ef speed 0.0 --el time %d",
-                latitude, longitude, System.currentTimeMillis()
-            );
-            return executeRootCommand(command);
-        } catch (Exception e) {
-            Log.e(TAG, "Broadcast injection failed", e);
-            return false;
-        }
-    }
-
-    /** Method 2: Write coordinates to a file and trigger a location provider reload. */
-    private boolean injectViaLocationProvider(double latitude, double longitude) {
-        try {
-            String command = String.format(
-                "echo 'lat=%f,lon=%f,acc=1.0,time=%d' > /data/local/tmp/gps_override.txt && " +
-                "chmod 666 /data/local/tmp/gps_override.txt",
-                latitude, longitude, System.currentTimeMillis()
-            );
-            boolean success = executeRootCommand(command);
-            if (success) {
-                executeRootCommand("am broadcast -a com.android.internal.location.LOCATION_CHANGED");
+            if (locationManager == null) {
+                Log.e(TAG, "LocationManager is null");
+                return false;
             }
-            return success;
+
+            // Store coordinates for continuous updates
+            currentLat = latitude;
+            currentLon = longitude;
+
+            // Get all existing providers
+            List<String> allProviders = locationManager.getAllProviders();
+            Log.d(TAG, "Found " + allProviders.size() + " providers: " + allProviders.toString());
+
+            // Create test version for each provider
+            for (String providerName : allProviders) {
+                try {
+                    LocationProvider provider = locationManager.getProvider(providerName);
+                    if (provider == null) continue;
+
+                    locationManager.addTestProvider(
+                        providerName,
+                        provider.requiresNetwork(),
+                        provider.requiresSatellite(),
+                        provider.requiresCell(),
+                        provider.hasMonetaryCost(),
+                        provider.supportsAltitude(),
+                        provider.supportsSpeed(),
+                        provider.supportsBearing(),
+                        provider.getPowerRequirement(),
+                        provider.getAccuracy()
+                    );
+
+                    locationManager.setTestProviderEnabled(providerName, true);
+                    locationManager.setTestProviderStatus(providerName, 2, null, System.currentTimeMillis());
+                    Log.d(TAG, "Test provider enabled: " + providerName);
+
+                } catch (Exception e) {
+                    Log.d(TAG, "Failed to setup provider " + providerName + ": " + e.getMessage());
+                }
+            }
+
+            // Update all providers once
+            updateAllProviders();
+
+            // Start background thread for continuous updates (KEY TO PERSISTENCE!)
+            isFakeGPSActive = true;
+            updateThread = new LocationUpdateThread();
+            updateThread.start();
+            Log.i(TAG, "Fake GPS injected + continuous update thread started");
+
+            return true;
+
         } catch (Exception e) {
-            Log.e(TAG, "Provider injection failed", e);
+            Log.e(TAG, "Failed to inject fake location", e);
+            e.printStackTrace();
             return false;
         }
     }
 
-    /** Method 3: Set a system property with the spoofed coordinates (legacy fallback). */
-    private boolean injectViaSystemProperty(double latitude, double longitude) {
-        try {
-            String command = String.format(
-                "setprop persist.sys.mock.location '%f,%f'", latitude, longitude
-            );
-            return executeRootCommand(command);
-        } catch (Exception e) {
-            Log.e(TAG, "Property injection failed", e);
-            return false;
+    /**
+     * Update all test providers with current fake location.
+     */
+    private void updateAllProviders() {
+        if (locationManager == null) return;
+
+        List<String> allProviders = locationManager.getAllProviders();
+        for (String providerName : allProviders) {
+            try {
+                Location fakeLocation = new Location(providerName);
+                fakeLocation.setLatitude(currentLat);
+                fakeLocation.setLongitude(currentLon);
+                fakeLocation.setProvider(providerName);
+                fakeLocation.setAccuracy(1.0f);
+                fakeLocation.setBearing(0.0f);
+                fakeLocation.setAltitude(100.0);
+                fakeLocation.setSpeed(0.0f);
+                fakeLocation.setTime(System.currentTimeMillis());
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                    fakeLocation.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
+                }
+
+                locationManager.setTestProviderLocation(providerName, fakeLocation);
+
+            } catch (Exception e) {
+                Log.d(TAG, "Failed to update " + providerName + ": " + e.getMessage());
+            }
         }
     }
 
-    /** Stops fake GPS by cleaning up override files and system properties. */
+    /**
+     * Stops fake GPS injection and removes test providers.
+     */
     public boolean stopFakeLocation() {
         Log.d(TAG, "Stopping fake GPS");
         try {
-            String cleanupCommand =
-                "rm -f /data/local/tmp/gps_override.txt && " +
-                "setprop persist.sys.mock.location ''";
-            boolean success = executeRootCommand(cleanupCommand);
-            if (success) {
-                isFakeGPSActive = false;
-                executeRootCommand("am broadcast -a android.location.PROVIDERS_CHANGED");
-                Log.i(TAG, "Fake GPS stopped successfully");
+            isFakeGPSActive = false;
+
+            // Stop update thread
+            if (updateThread != null) {
+                updateThread.interrupt();
+                try {
+                    updateThread.join(2000);  // Wait max 2 seconds
+                } catch (InterruptedException e) {
+                    Log.d(TAG, "Thread interrupt ignored");
+                }
+                updateThread = null;
             }
-            return success;
+
+            if (locationManager == null) return false;
+
+            List<String> allProviders = locationManager.getAllProviders();
+            for (String providerName : allProviders) {
+                try {
+                    locationManager.setTestProviderEnabled(providerName, false);
+                    locationManager.removeTestProvider(providerName);
+                    Log.d(TAG, "Test provider removed: " + providerName);
+                } catch (Exception e) {
+                    Log.d(TAG, "Failed to remove provider " + providerName);
+                }
+            }
+
+            Log.i(TAG, "Fake GPS stopped successfully");
+            return true;
+
         } catch (Exception e) {
             Log.e(TAG, "Failed to stop fake GPS", e);
-            return false;
         }
-    }
-
-    /** Executes a shell command with superuser privileges. */
-    private boolean executeRootCommand(String command) {
-        Process process = null;
-        DataOutputStream outputStream = null;
-        try {
-            process = Runtime.getRuntime().exec("su");
-            outputStream = new DataOutputStream(process.getOutputStream());
-            outputStream.writeBytes(command + "\n");
-            outputStream.flush();
-            outputStream.writeBytes("exit\n");
-            outputStream.flush();
-            int exitValue = process.waitFor();
-            return exitValue == 0;
-        } catch (IOException e) {
-            Log.e(TAG, "IO error executing root command", e);
-            return false;
-        } catch (InterruptedException e) {
-            Log.e(TAG, "Root command interrupted", e);
-            return false;
-        } finally {
-            try {
-                if (outputStream != null) outputStream.close();
-                if (process != null) process.destroy();
-            } catch (IOException e) {
-                Log.e(TAG, "Error closing streams", e);
-            }
-        }
+        return false;
     }
 
     public boolean isFakeGPSActive() {
@@ -159,6 +182,33 @@ public class GPSInjector {
     public void cleanup() {
         if (isFakeGPSActive) {
             stopFakeLocation();
+        }
+    }
+
+    /**
+     * Background thread that continuously updates location (key to persistence).
+     * Mimics tiket.git's Run thread - updates every second.
+     */
+    private class LocationUpdateThread extends Thread {
+        @Override
+        public void run() {
+            Log.d(TAG, "LocationUpdateThread started");
+            while (isFakeGPSActive) {
+                try {
+                    // Update all providers with current coordinates
+                    updateAllProviders();
+
+                    // Sleep 1 second before next update (like tiket.git)
+                    Thread.sleep(UPDATE_INTERVAL_MS);
+
+                } catch (InterruptedException e) {
+                    Log.d(TAG, "LocationUpdateThread interrupted");
+                    break;
+                } catch (Exception e) {
+                    Log.e(TAG, "Error in LocationUpdateThread", e);
+                }
+            }
+            Log.d(TAG, "LocationUpdateThread ended");
         }
     }
 }

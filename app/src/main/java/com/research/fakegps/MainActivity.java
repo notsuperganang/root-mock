@@ -51,8 +51,8 @@ public class MainActivity extends AppCompatActivity {
     private RootChecker rootChecker;
     private DatabaseHelper dbHelper;
 
-    private static final double DEFAULT_LAT = -6.2088;
-    private static final double DEFAULT_LON = 106.8456;
+    private static final double DEFAULT_LAT = 4.588703219411093;
+    private static final double DEFAULT_LON = 97.90815362491381;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             tvRootStatus.setText("● Tidak ada root");
             tvRootStatus.setTextColor(0xFFFF6E6E);
-            btnSetLocation.setEnabled(false);
+            btnSetLocation.setEnabled(true);
         }
     }
 
@@ -222,9 +222,22 @@ public class MainActivity extends AppCompatActivity {
             .setTitle("Lokasi Favorit")
             .setAdapter(adapter, (d, which) -> {
                 FavoriteLocation selected = adapter.getItem(which);
-                updateSelectedLocation(selected.getLatitude(), selected.getLongitude());
+                double lat = selected.getLatitude();
+                double lon = selected.getLongitude();
+
+                // Update UI
+                updateSelectedLocation(lat, lon);
                 mapView.getController().setZoom(16.0);
-                Toast.makeText(this, "Navigasi ke: " + selected.getName(), Toast.LENGTH_SHORT).show();
+
+                // Auto-inject fake GPS to selected location
+                boolean success = gpsInjector.setFakeLocation(lat, lon);
+                if (success) {
+                    tvStatus.setText("Status: AKTIF - " + selected.getName());
+                    tvStatus.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                    Toast.makeText(this, "GPS spoofed ke: " + selected.getName(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Gagal inject: " + selected.getName(), Toast.LENGTH_SHORT).show();
+                }
             })
             .setNegativeButton("Tutup", null)
             .create();
@@ -280,8 +293,8 @@ public class MainActivity extends AppCompatActivity {
     // ── GPS Injection ─────────────────────────────────────────────────────────
 
     private void setFakeLocation() {
-        String latStr = editLatitude.getText().toString();
-        String lonStr = editLongitude.getText().toString();
+        String latStr = editLatitude.getText().toString().trim();
+        String lonStr = editLongitude.getText().toString().trim();
 
         if (latStr.isEmpty() || lonStr.isEmpty()) {
             Toast.makeText(this, "Pilih lokasi di peta atau isi koordinat!", Toast.LENGTH_SHORT).show();
@@ -289,6 +302,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         try {
+            latStr = latStr.replace(",", ".");
+            lonStr = lonStr.replace(",", ".");
             double latitude  = Double.parseDouble(latStr);
             double longitude = Double.parseDouble(lonStr);
 
@@ -307,8 +322,9 @@ public class MainActivity extends AppCompatActivity {
                     String.format("Fake GPS aktif: %.6f, %.6f", latitude, longitude),
                     Toast.LENGTH_LONG).show();
             } else {
-                tvStatus.setText("Status: GAGAL - Cek akses root");
+                tvStatus.setText("Status: GAGAL - Cek LSPosed modules & logs");
                 tvStatus.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
+                Toast.makeText(this, "Injeksi gagal - cek logcat untuk detail error", Toast.LENGTH_LONG).show();
             }
 
         } catch (NumberFormatException e) {
