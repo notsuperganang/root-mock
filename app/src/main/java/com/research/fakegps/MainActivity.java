@@ -52,8 +52,8 @@ public class MainActivity extends AppCompatActivity {
     private RootChecker rootChecker;
     private DatabaseHelper dbHelper;
 
-    private static final double DEFAULT_LAT = 4.588703219411093;
-    private static final double DEFAULT_LON = 97.90815362491381;
+    private static final double DEFAULT_LAT = 4.588626231650262;
+    private static final double DEFAULT_LON = 97.90821172936614;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
