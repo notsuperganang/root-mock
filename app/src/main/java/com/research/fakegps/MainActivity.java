@@ -3,6 +3,7 @@ package com.research.fakegps;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import java.util.Locale;
 import android.preference.PreferenceManager;
 import android.view.View;
 import android.view.ViewGroup;
@@ -81,8 +82,8 @@ public class MainActivity extends AppCompatActivity {
         tvRootStatus     = findViewById(R.id.tv_root_status);
         mapView          = findViewById(R.id.map_view);
 
-        editLatitude.setText(String.valueOf(DEFAULT_LAT));
-        editLongitude.setText(String.valueOf(DEFAULT_LON));
+        editLatitude.setText(String.format(Locale.US, "%.6f", DEFAULT_LAT));
+        editLongitude.setText(String.format(Locale.US, "%.6f", DEFAULT_LON));
     }
 
     private void initMap() {
@@ -114,8 +115,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateSelectedLocation(double lat, double lon) {
-        editLatitude.setText(String.format("%.6f", lat));
-        editLongitude.setText(String.format("%.6f", lon));
+        editLatitude.setText(String.format(Locale.US, "%.6f", lat));
+        editLongitude.setText(String.format(Locale.US, "%.6f", lon));
 
         GeoPoint point = new GeoPoint(lat, lon);
         selectedMarker.setPosition(point);
@@ -162,8 +163,8 @@ public class MainActivity extends AppCompatActivity {
     // ── Favorites ────────────────────────────────────────────────────────────
 
     private void showSaveFavoriteDialog() {
-        String latStr = editLatitude.getText().toString();
-        String lonStr = editLongitude.getText().toString();
+        String latStr = editLatitude.getText().toString().trim();
+        String lonStr = editLongitude.getText().toString().trim();
 
         if (latStr.isEmpty() || lonStr.isEmpty()) {
             Toast.makeText(this, "Pilih lokasi terlebih dahulu.", Toast.LENGTH_SHORT).show();
@@ -176,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
             lat = Double.parseDouble(latStr);
             lon = Double.parseDouble(lonStr);
         } catch (NumberFormatException e) {
-            Toast.makeText(this, "Koordinat tidak valid.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Koordinat tidak valid: '" + latStr + "', '" + lonStr + "'", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -238,6 +239,9 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Toast.makeText(this, "Gagal inject: " + selected.getName(), Toast.LENGTH_SHORT).show();
                 }
+
+                // Dismiss dialog after all updates
+                d.dismiss();
             })
             .setNegativeButton("Tutup", null)
             .create();
@@ -271,7 +275,30 @@ public class MainActivity extends AppCompatActivity {
             ImageButton btnDelete = convertView.findViewById(R.id.btn_delete_fav);
 
             tvName.setText(fav.getName());
-            tvCoords.setText(String.format("%.6f, %.6f", fav.getLatitude(), fav.getLongitude()));
+            tvCoords.setText(String.format(Locale.US, "%.6f, %.6f", fav.getLatitude(), fav.getLongitude()));
+
+            // Click on item area (name/coords) to select this favorite
+            convertView.setOnClickListener(v -> {
+                double lat = fav.getLatitude();
+                double lon = fav.getLongitude();
+
+                // Update UI
+                updateSelectedLocation(lat, lon);
+                mapView.getController().setZoom(16.0);
+
+                // Auto-inject fake GPS
+                boolean success = gpsInjector.setFakeLocation(lat, lon);
+                if (success) {
+                    tvStatus.setText("Status: AKTIF - " + fav.getName());
+                    tvStatus.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                    Toast.makeText(MainActivity.this, "GPS spoofed ke: " + fav.getName(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this, "Gagal inject: " + fav.getName(), Toast.LENGTH_SHORT).show();
+                }
+
+                // Dismiss dialog
+                if (dialog != null) dialog.dismiss();
+            });
 
             btnDelete.setOnClickListener(v -> {
                 new MaterialAlertDialogBuilder(MainActivity.this)
