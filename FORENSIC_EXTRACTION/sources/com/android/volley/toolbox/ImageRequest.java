@@ -1,0 +1,142 @@
+package com.android.volley.toolbox;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.widget.ImageView;
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.NetworkResponse;
+import com.android.volley.ParseError;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyLog;
+
+/* JADX INFO: loaded from: classes.dex */
+public class ImageRequest extends Request<Bitmap> {
+    public static final float DEFAULT_IMAGE_BACKOFF_MULT = 2.0f;
+    public static final int DEFAULT_IMAGE_MAX_RETRIES = 2;
+    public static final int DEFAULT_IMAGE_TIMEOUT_MS = 1000;
+    private static final Object sDecodeLock = new Object();
+    private final Bitmap.Config mDecodeConfig;
+    private Response.Listener<Bitmap> mListener;
+    private final Object mLock;
+    private final int mMaxHeight;
+    private final int mMaxWidth;
+    private final ImageView.ScaleType mScaleType;
+
+    public ImageRequest(String str, Response.Listener<Bitmap> listener, int i, int i2, ImageView.ScaleType scaleType, Bitmap.Config config, Response.ErrorListener errorListener) {
+        super(0, str, errorListener);
+        this.mLock = new Object();
+        setRetryPolicy(new DefaultRetryPolicy(1000, 2, 2.0f));
+        this.mListener = listener;
+        this.mDecodeConfig = config;
+        this.mMaxWidth = i;
+        this.mMaxHeight = i2;
+        this.mScaleType = scaleType;
+    }
+
+    @Deprecated
+    public ImageRequest(String str, Response.Listener<Bitmap> listener, int i, int i2, Bitmap.Config config, Response.ErrorListener errorListener) {
+        this(str, listener, i, i2, ImageView.ScaleType.CENTER_INSIDE, config, errorListener);
+    }
+
+    @Override // com.android.volley.Request
+    public Request.Priority getPriority() {
+        return Request.Priority.LOW;
+    }
+
+    private static int getResizedDimension(int i, int i2, int i3, int i4, ImageView.ScaleType scaleType) {
+        if (i != 0 || i2 != 0) {
+            if (scaleType == ImageView.ScaleType.FIT_XY) {
+                return i != 0 ? i : i3;
+            }
+            if (i == 0) {
+                return (int) ((((double) i2) / ((double) i4)) * ((double) i3));
+            }
+            if (i2 == 0) {
+                return i;
+            }
+            double d = ((double) i4) / ((double) i3);
+            if (scaleType == ImageView.ScaleType.CENTER_CROP) {
+                if (((double) i) * d < i2) {
+                    return (int) (((double) i2) / d);
+                }
+            } else if (((double) i) * d > i2) {
+                return (int) (((double) i2) / d);
+            }
+            return i;
+        }
+        return i3;
+    }
+
+    @Override // com.android.volley.Request
+    protected Response<Bitmap> parseNetworkResponse(NetworkResponse networkResponse) {
+        Response<Bitmap> responseError;
+        synchronized (sDecodeLock) {
+            try {
+                responseError = doParse(networkResponse);
+            } catch (OutOfMemoryError e) {
+                VolleyLog.e("Caught OOM for %d byte image, url=%s", Integer.valueOf(networkResponse.data.length), getUrl());
+                responseError = Response.error(new ParseError(e));
+            }
+        }
+        return responseError;
+    }
+
+    private Response<Bitmap> doParse(NetworkResponse networkResponse) {
+        Bitmap bitmapCreateScaledBitmap;
+        byte[] bArr = networkResponse.data;
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        if (this.mMaxWidth == 0 && this.mMaxHeight == 0) {
+            options.inPreferredConfig = this.mDecodeConfig;
+            bitmapCreateScaledBitmap = BitmapFactory.decodeByteArray(bArr, 0, bArr.length, options);
+        } else {
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(bArr, 0, bArr.length, options);
+            int i = options.outWidth;
+            int i2 = options.outHeight;
+            int resizedDimension = getResizedDimension(this.mMaxWidth, this.mMaxHeight, i, i2, this.mScaleType);
+            int resizedDimension2 = getResizedDimension(this.mMaxHeight, this.mMaxWidth, i2, i, this.mScaleType);
+            options.inJustDecodeBounds = false;
+            options.inSampleSize = findBestSampleSize(i, i2, resizedDimension, resizedDimension2);
+            Bitmap bitmapDecodeByteArray = BitmapFactory.decodeByteArray(bArr, 0, bArr.length, options);
+            if (bitmapDecodeByteArray == null || (bitmapDecodeByteArray.getWidth() <= resizedDimension && bitmapDecodeByteArray.getHeight() <= resizedDimension2)) {
+                bitmapCreateScaledBitmap = bitmapDecodeByteArray;
+            } else {
+                bitmapCreateScaledBitmap = Bitmap.createScaledBitmap(bitmapDecodeByteArray, resizedDimension, resizedDimension2, true);
+                bitmapDecodeByteArray.recycle();
+            }
+        }
+        if (bitmapCreateScaledBitmap == null) {
+            return Response.error(new ParseError(networkResponse));
+        }
+        return Response.success(bitmapCreateScaledBitmap, HttpHeaderParser.parseCacheHeaders(networkResponse));
+    }
+
+    @Override // com.android.volley.Request
+    public void cancel() {
+        super.cancel();
+        synchronized (this.mLock) {
+            this.mListener = null;
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: protected */
+    @Override // com.android.volley.Request
+    public void deliverResponse(Bitmap bitmap) {
+        Response.Listener<Bitmap> listener;
+        synchronized (this.mLock) {
+            listener = this.mListener;
+        }
+        if (listener != null) {
+            listener.onResponse(bitmap);
+        }
+    }
+
+    static int findBestSampleSize(int i, int i2, int i3, int i4) {
+        float f = 1.0f;
+        while (2.0f * f <= Math.min(((double) i) / ((double) i3), ((double) i2) / ((double) i4))) {
+            f *= 2.0f;
+        }
+        return (int) f;
+    }
+}
