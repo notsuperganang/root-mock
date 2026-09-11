@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="place_autocomplete_clear_button">සෙවීම හිස් කරන්න</string>
+    <string name="place_autocomplete_search_hint">සෙවීම</string>
+</resources>
