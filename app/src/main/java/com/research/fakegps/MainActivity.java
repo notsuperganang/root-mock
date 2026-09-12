@@ -44,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
     private Button btnSaveFavorite;
     private Button btnViewFavorites;
     private TextView tvStatus;
-    private TextView tvRootStatus;
     private MapView mapView;
     private Marker selectedMarker;
 
@@ -67,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
         initMap();
         initManagers();
         requestPermissions();
-        checkRootStatus();
         setupListeners();
     }
 
@@ -79,7 +77,6 @@ public class MainActivity extends AppCompatActivity {
         btnSaveFavorite  = findViewById(R.id.btn_save_favorite);
         btnViewFavorites = findViewById(R.id.btn_view_favorites);
         tvStatus         = findViewById(R.id.tv_status);
-        tvRootStatus     = findViewById(R.id.tv_root_status);
         mapView          = findViewById(R.id.map_view);
 
         editLatitude.setText(String.format(Locale.US, "%.6f", DEFAULT_LAT));
@@ -128,20 +125,6 @@ public class MainActivity extends AppCompatActivity {
         gpsInjector = new GPSInjector(this);
         rootChecker = new RootChecker();
         dbHelper    = new DatabaseHelper(this);
-    }
-
-    private void checkRootStatus() {
-        boolean isRooted = rootChecker.isDeviceRooted();
-
-        if (isRooted) {
-            tvRootStatus.setText("● Siap");
-            tvRootStatus.setTextColor(0xFF69F0AE);
-            btnSetLocation.setEnabled(true);
-        } else {
-            tvRootStatus.setText("● Tidak ada root");
-            tvRootStatus.setTextColor(0xFFFF6E6E);
-            btnSetLocation.setEnabled(true);
-        }
     }
 
     private void requestPermissions() {
